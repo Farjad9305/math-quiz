@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Math Quiz Leaderboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eef2f3;
+      text-align: center;
+      padding: 40px;
+    }
+    h2 { margin-bottom: 30px; }
+    .tables {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    table {
+      border-collapse: collapse;
+      width: 250px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    th {
+      background: #0077cc;
+      color: white;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    button {
+      margin-top: 30px;
+      padding: 12px 25px;
+      font-size: 1em;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🏆 Math Quiz Leaderboards</h2>
+
+<div class="tables">
+  <table id="round1">
+    <thead><tr><th colspan="2">Round 1: Addition</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <table id="round2">
+    <thead><tr><th colspan="2">Round 2: Subtraction</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <table id="round3">
+    <thead><tr><th colspan="2">Round 3: Multiplication</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<button onclick="location.href='quiz.html'">🎮 Play Now</button>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1pRf1kRA6bdbyibKMzES-Q8C0h08gPRI",
+    authDomain: "mathquizbysf.firebaseapp.com",
+    databaseURL: "https://mathquizbysf-default-rtdb.firebaseio.com/",
+    projectId: "mathquizbysf",
+    storageBucket: "mathquizbysf.appspot.com",
+    messagingSenderId: "844706232442",
+    appId: "1:844706232442:web:f76abaf4b96817c386e3c3",
+    measurementId: "G-NRWPMLGHZK"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const roundIds = ["round1", "round2", "round3"];
+
+  roundIds.forEach((roundId, index) => {
+    const table = document.getElementById(roundId).querySelector("tbody");
+    const ref = db.ref(`leaderboard/${roundId}`);
+    ref.once("value", snapshot => {
+      const data = snapshot.val() || {};
+      const sorted = Object.entries(data).sort((a, b) => a[1] - b[1]).slice(0, 10);
+      if (sorted.length === 0) {
+        for (let i = 1; i <= 10; i++) {
+          ref.child(`demo${i}`).set(60);
+          const row = `<tr><td>demo${i}</td><td>60s</td></tr>`;
+          table.innerHTML += row;
+        }
+      } else {
+        sorted.forEach(([name, time]) => {
+          const row = `<tr><td>${name}</td><td>${time}s</td></tr>`;
+          table.innerHTML += row;
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
