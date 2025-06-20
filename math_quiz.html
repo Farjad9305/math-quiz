@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Math Quiz Game - 3 Rounds</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eef2f3;
+      text-align: center;
+      padding: 50px;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: auto;
+      display: none;
+    }
+    input[type="number"], input[type="text"] {
+      padding: 10px;
+      width: 80%;
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 25px;
+      font-size: 1em;
+      margin-top: 15px;
+    }
+    .correct { color: green; }
+    .incorrect { color: red; }
+    .hidden { display: none; }
+    #timer { font-weight: bold; color: #444; margin: 10px 0; }
+    #summary { text-align: left; margin-top: 20px; }
+    ul { text-align: left; padding-left: 20px; }
+  </style>
+</head>
+<body>
+
+  <div id="startScreen">
+    <h2>Welcome to the Math Quiz!</h2>
+    <input type="text" id="playerName" placeholder="Enter your name">
+    <br><br>
+    <button onclick="startQuiz()">Start Quiz</button>
+  </div>
+
+  <div class="container">
+    <h2>Math Quiz Game 🧠</h2>
+    <p id="roundInfo">Round 1: Addition</p>
+    <p id="progress">Problem 1 of 20</p>
+    <div id="timer">Time: 0s</div>
+    <h3 id="question">Loading...</h3>
+    <input type="number" id="answer" placeholder="Your answer">
+    <br>
+    <button onclick="submitAnswer()">Submit</button>
+    <p id="feedback" class="hidden"></p>
+    <div id="endMessage" class="hidden"></div>
+    <div id="summary" class="hidden"></div>
+    <div id="leaderboard" class="hidden"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA1pRf1kRA6bdbyibKMzES-Q8C0h08gPRI",
+      authDomain: "mathquizbysf.firebaseapp.com",
+      projectId: "mathquizbysf",
+      storageBucket: "mathquizbysf.appspot.com",
+      messagingSenderId: "844706232442",
+      appId: "1:844706232442:web:f76abaf4b96817c386e3c3",
+      measurementId: "G-NRWPMLGHZK"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script>
+    let round = 1;
+    let questionNumber = 0;
+    let currentAnswer = 0;
+    let startTime = 0;
+    let timerInterval;
+    let player = "";
+
+    const roundTimes = [[], [], []];
+    const incorrectCounts = [0, 0, 0];
+
+    function startQuiz() {
+      const input = document.getElementById("playerName").value.trim();
+      if (!input) {
+        alert("Please enter your name to start.");
+        return;
+      }
+      player = input;
+      document.getElementById("startScreen").style.display = "none";
+      document.querySelector(".container").style.display = "block";
+      generateProblem();
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function updateRoundInfo() {
+      const roundNames = ["Addition", "Subtraction", "Multiplication"];
+      document.getElementById("roundInfo").textContent = `Round ${round}: ${roundNames[round - 1]}`;
+      document.getElementById("progress").textContent = `Problem ${questionNumber + 1} of 20`;
+    }
+
+    function generateProblem() {
+      let a, b, question;
+
+      if (round === 1) {
+        a = getRandomInt(10, 99);
+        b = getRandomInt(10, 99);
+        question = `${a} + ${b}`;
+        currentAnswer = a + b;
+      } else if (round === 2) {
+        a = getRandomInt(10, 99);
+        b = getRandomInt(10, 99);
+        if (b > a) [a, b] = [b, a];
+        question = `${a} - ${b}`;
+        currentAnswer = a - b;
+      } else {
+        a = getRandomInt(3, 9);
+        b = getRandomInt(3, 9);
+        question = `${a} × ${b}`;
+        currentAnswer = a * b;
+      }
+
+      document.getElementById("question").textContent = question;
+      document.getElementById("feedback").classList.add("hidden");
+      document.getElementById("answer").value = "";
+      updateRoundInfo();
+      startTimer();
+    }
+
+    function startTimer() {
+      startTime = Date.now();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById("timer").textContent = `Time: ${elapsed}s`;
+      }, 500);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      const elapsed = (Date.now() - startTime) / 1000;
+      roundTimes[round - 1].push(elapsed);
+    }
+
+    function submitAnswer() {
+      if (round > 3) return;  // Prevent submission after quiz is done
+      const userInput = parseInt(document.getElementById("answer").value);
+      const feedback = document.getElementById("feedback");
+
+      if (isNaN(userInput)) {
+        feedback.textContent = "⚠️ Please enter a number.";
+        feedback.className = "incorrect";
+        feedback.classList.remove("hidden");
+        return;
+      }
+
+      if (userInput === currentAnswer) {
+        stopTimer();
+        questionNumber++;
+        feedback.textContent = "✅ Correct!";
+        feedback.className = "correct";
+        feedback.classList.remove("hidden");
+
+        if (questionNumber === 20) {
+          if (round < 3) {
+            round++;
+            questionNumber = 0;
+            setTimeout(generateProblem, 800);
+          } else {
+            endQuiz();
+            return;
+          }
+        }
+
+        setTimeout(generateProblem, 600);
+      } else {
+        incorrectCounts[round - 1]++;
+        feedback.textContent = "❌ Incorrect. Try again!";
+        feedback.className = "incorrect";
+        feedback.classList.remove("hidden");
+      }
+    }
+
+    function average(arr) {
+      if (arr.length === 0) return 0;
+      const total = arr.reduce((a, b) => a + b, 0);
+      return (total / arr.length).toFixed(2);
+    }
+
+    async function endQuiz() {
+  clearInterval(timerInterval);
+
+  // Hide quiz elements
+  document.getElementById("question").style.display = "none";
+  document.getElementById("answer").style.display = "none";
+  document.querySelector("button").style.display = "none";
+  document.getElementById("progress").style.display = "none";
+  document.getElementById("roundInfo").style.display = "none";
+  document.getElementById("timer").style.display = "none";
+  document.getElementById("feedback").style.display = "none";
+
+  // Show completion message
+  document.getElementById("endMessage").innerHTML = `<h3>🎉 ${player}, you've completed all 3 rounds!</h3>`;
+  document.getElementById("endMessage").classList.remove("hidden");
+
+  const roundNames = ["Addition", "Subtraction", "Multiplication"];
+  let summaryHTML = `<h4>📊 Your Performance Summary:</h4><ul>`;
+  let leaderboardHTML = `<h4>🏆 Leaderboards:</h4>`;
+
+  for (let i = 0; i < 3; i++) {
+    const avgTime = parseFloat(average(roundTimes[i]));
+    summaryHTML += `
+      <li>
+        <strong>${roundNames[i]}:</strong><br>
+        ⏱️ Avg Time: ${avgTime}s<br>
+        ❌ Incorrect Attempts: ${incorrectCounts[i]}
+      </li><br>`;
+
+    // Save best time to Firestore
+    const docRef = db.collection("leaderboards").doc(roundNames[i]);
+    const docSnap = await docRef.get();
+    const data = docSnap.exists() ? docSnap.data() : {};
+    const currentBest = data[player] ?? Infinity;
+
+    if (avgTime < currentBest) {
+      await docRef.set({ [player]: avgTime }, { merge: true });
+    }
+
+    // Merge current player's new best into data and sort for leaderboard
+    const allData = { ...data, [player]: Math.min(currentBest, avgTime) };
+    const sorted = Object.entries(allData).sort((a, b) => a[1] - b[1]);
+    const top5 = sorted.slice(0, 5);
+
+    leaderboardHTML += `<strong>${roundNames[i]}</strong><ul>`;
+    top5.forEach(([name, time]) => {
+      leaderboardHTML += `<li>${name}: ${time}s</li>`;
+    });
+    leaderboardHTML += `</ul>`;
+  }
+
+  summaryHTML += `</ul>`;
+
+  document.getElementById("summary").innerHTML = summaryHTML;
+  document.getElementById("summary").classList.remove("hidden");
+
+  document.getElementById("leaderboard").innerHTML = leaderboardHTML;
+  document.getElementById("leaderboard").classList.remove("hidden");
+
+  // Prevent further submissions
+  round = 4;
+}
+
+
+</script>
+
+</body>
+</html>
