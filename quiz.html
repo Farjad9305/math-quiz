@@ -229,23 +229,23 @@
         ❌ Incorrect Attempts: ${incorrectCounts[i]}
       </li><br>`;
 
-    // Save to Firebase leaderboard
+    // Firebase leaderboard logic
     const ref = db.ref(`leaderboard/round${i+1}`);
     const snapshot = await ref.once("value");
     const data = snapshot.val() || {};
 
-    // Update player's score only if better
     if (!data[player] || avgTime < data[player]) {
       data[player] = avgTime;
     }
 
-    // Sort and keep top 10
-    const sorted = Object.entries(data).sort((a, b) => a[1] - b[1]).slice(0, 10);
+    const sorted = Object.entries(data)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 10);
+
     const newData = {};
     sorted.forEach(([name, time]) => newData[name] = time);
     await ref.set(newData);
 
-    // Build leaderboard table
     leaderboardHTML += `<table style="display:inline-block;margin:10px;background:#fff;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);">
       <thead><tr><th colspan="2">${roundNames[i]}</th></tr></thead><tbody>`;
     sorted.forEach(([name, time]) => {
@@ -255,16 +255,16 @@
   }
 
   summaryHTML += `</ul>`;
-  leaderboardHTML += `</div>`;
+  leaderboardHTML += `</div><br><button onclick="location.href='index.html'">🏠 Home Page</button>`;
 
+  // Display all
   document.getElementById("summary").innerHTML = summaryHTML;
   document.getElementById("summary").classList.remove("hidden");
 
-  document.getElementById("leaderboard").innerHTML = leaderboardHTML + `<br><button onclick="location.href='index.html'">🏠 Home Page</button>`;
+  document.getElementById("leaderboard").innerHTML = leaderboardHTML;
   document.getElementById("leaderboard").classList.remove("hidden");
 
-  // Lock the quiz from further action
-  round = 4;
+  round = 4; // Prevent further submissions
 }
 
 
